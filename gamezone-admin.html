@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameZone — Yönetici Paneli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Desktop block screen */
+#desktopBlock {
+  display: none;
+  position: fixed; inset: 0; z-index: 99999;
+  background: #070c1a;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 40px;
+  font-family: 'Inter', sans-serif;
+}
+#desktopBlock .db-icon { font-size: 72px; margin-bottom: 24px; }
+#desktopBlock h1 { color: #3b82f6; font-size: 22px; margin-bottom: 12px; }
+#desktopBlock p { color: #94a3b8; font-size: 14px; line-height: 1.7; max-width: 360px; }
+#desktopBlock .db-note { background: #0f1830; border: 1px solid #1e3a5f; border-radius: 14px; padding: 16px 20px; margin-top: 20px; font-size: 12px; color: #64748b; max-width: 360px; }
+
+:root {
+  --bg:        #060b18;
+  --surface:   #0d1526;
+  --surface2:  #111d35;
+  --border:    #1a2f4a;
+  --border2:   #243d5c;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --accent:    #3b82f6;
+  --accent2:   #6c63ff;
+  --green:     #22c55e;
+  --red:       #ef4444;
+  --orange:    #f97316;
+  --yellow:    #eab308;
+  --purple:    #a855f7;
+  --teal:      #14b8a6;
+  --gold:      #fbbf24;
+  --radius:    10px;
+  --sidebar-w: 240px;
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ─── LOGIN SCREEN ─── */
+#loginScreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 30% 20%, #0f1f4a 0%, var(--bg) 60%);
+  padding: 24px;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+}
+.login-logo {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.login-logo .logo-text { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+.logo-y { color: var(--accent); }
+.logo-w { color: #fff; }
+.login-logo .sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+.login-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.login-desc { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: .5px; text-transform: uppercase; }
+.field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s;
+}
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--muted); }
+
+.btn-login {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background .2s, transform .1s;
+  font-family: inherit;
+}
+.btn-login:hover { background: #2563eb; }
+.btn-login:active { transform: scale(.98); }
+.btn-login:disabled { opacity: .6; cursor: not-allowed; }
+
+.login-error {
+  background: rgba(239,68,68,.12);
+  border: 1px solid rgba(239,68,68,.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #fca5a5;
+  margin-top: 12px;
+  display: none;
+}
+
+.login-info {
+  background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #93c5fd;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+/* ─── MAIN LAYOUT ─── */
+#appScreen { display: none; flex: 1; overflow: hidden; }
+#appScreen.active { display: flex; flex-direction: column; }
+
+/* Topbar */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.topbar-logo { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
+.topbar-badge {
+  background: rgba(108,99,255,.15);
+  border: 1px solid rgba(108,99,255,.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a78bfa;
+}
+.topbar-sep { flex: 1; }
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.topbar-avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--green);
+}
+.topbar-status::before {
+  content: '';
+  width: 7px; height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.btn-logout {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .2s;
+}
+.btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* Body */
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px 8px;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.nav-section { margin-bottom: 20px; }
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0 10px;
+  margin-bottom: 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: all .15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active {
+  background: rgba(59,130,246,.12);
+  color: var(--accent);
+  font-weight: 600;
+}
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--red);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Content Area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  background: var(--bg);
+}
+.content::-webkit-scrollbar { width: 6px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ─── CARDS / STATS ─── */
+.page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+.stat-value { font-size: 26px; font-weight: 800; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.stat-icon { font-size: 28px; float: right; margin-top: -4px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.card-head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body { padding: 20px; }
+
+/* Table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(26,47,74,.5);
+  color: var(--text);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(59,130,246,.04); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-green  { background: rgba(34,197,94,.12);  color: var(--green); }
+.badge-red    { background: rgba(239,68,68,.12);  color: var(--red); }
+.badge-blue   { background: rgba(59,130,246,.12); color: var(--accent); }
+.badge-purple { background: rgba(168,85,247,.12); color: var(--purple); }
+.badge-yellow { background: rgba(234,179,8,.12);  color: var(--yellow); }
+.badge-orange { background: rgba(249,115,22,.12); color: var(--orange); }
+
+/* Buttons */
+.btn {
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-blue   { background: var(--accent);   color: #fff; }
+.btn-blue:hover { background: #2563eb; }
+.btn-green  { background: var(--green);    color: #000; }
+.btn-green:hover { background: #16a34a; }
+.btn-red    { background: var(--red);      color: #fff; }
+.btn-red:hover { background: #dc2626; }
+.btn-orange { background: var(--orange);   color: #fff; }
+.btn-orange:hover { background: #ea580c; }
+.btn-ghost  { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--border); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Inputs in panel */
+.panel-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+  transition: border-color .2s;
+}
+.panel-input:focus { border-color: var(--accent); }
+.panel-input::placeholder { color: var(--muted); }
+
+/* Search bar */
+.search-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.search-row .panel-input { flex: 1; }
+
+/* Loader */
+.loader { text-align: center; padding: 60px 20px; color: var(--muted); }
+.spin { display: inline-block; animation: spin 1s linear infinite; font-size: 28px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+#toastRoot { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: 340px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  animation: slideIn .25s ease;
+}
+@keyframes slideIn { from { transform: translateX(110%); opacity:0; } to { transform: translateX(0); opacity:1; } }
+.toast.success { border-color: rgba(34,197,94,.4); color: #86efac; }
+.toast.error   { border-color: rgba(239,68,68,.4);  color: #fca5a5; }
+.toast.warn    { border-color: rgba(234,179,8,.4);   color: #fde047; }
+
+/* Modal */
+#modalOverlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+#modalOverlay.open { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  min-width: 420px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-title { font-size: 17px; font-weight: 800; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.modal-field { margin-bottom: 14px; }
+.modal-field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.modal-field input, .modal-field select, .modal-field textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  outline: none;
+}
+.modal-field input:focus, .modal-field select, .modal-field textarea:focus { border-color: var(--accent); }
+.modal-field textarea { resize: vertical; min-height: 80px; }
+select { background: var(--surface2); color: var(--text); }
+
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-icon { font-size: 42px; margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+
+/* Alert boxes */
+.alert { border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-bottom: 16px; }
+.alert-red    { background: rgba(239,68,68,.08);   border: 1px solid rgba(239,68,68,.25);   color: #fca5a5; }
+.alert-yellow { background: rgba(234,179,8,.08);   border: 1px solid rgba(234,179,8,.25);   color: #fde047; }
+.alert-green  { background: rgba(34,197,94,.08);   border: 1px solid rgba(34,197,94,.25);   color: #86efac; }
+.alert-blue   { background: rgba(59,130,246,.08);  border: 1px solid rgba(59,130,246,.25);  color: #93c5fd; }
+
+/* Grid layout helpers */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+/* Mono font for IDs / codes */
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+
+/* Section divider */
+.divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+/* Toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-info .toggle-name { font-size: 14px; font-weight: 600; }
+.toggle-info .toggle-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--border2);
+  border-radius: 24px;
+  cursor: pointer;
+  transition: .2s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 18px; height: 18px;
+  left: 3px; top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .2s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* Scrollable table wrapper */
+.table-scroll { overflow-x: auto; }
+
+/* Log entry */
+.log-entry {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26,47,74,.5);
+  font-size: 13px;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-ts { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.log-msg { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- Desktop Block -->
+<div id="desktopBlock">
+  <div class="db-icon">📱</div>
+  <h1>Sadece Mobil Cihaz</h1>
+  <p>GameZone Yönetici Paneli yalnızca <b style="color:#e2e8f0">mobil cihazlar</b> için tasarlanmıştır.<br>Lütfen telefonundan giriş yap.</p>
+  <div class="db-note">🔒 Bu panel masaüstü tarayıcılarda çalışmaz.</div>
+</div>
+
+<script>
+(function() {
+  var ua = navigator.userAgent || '';
+  var platform = navigator.platform || '';
+  var maxTouch = navigator.maxTouchPoints || 0;
+  var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  var isTablet = /iPad|Tablet/i.test(ua) || (maxTouch > 1 && /Mac/.test(platform));
+  var hasTouch = maxTouch > 0;
+  var isDesktop = !isMobile && !isTablet && !hasTouch;
+  if (isDesktop) {
+    document.getElementById('desktopBlock').style.display = 'flex';
+    window.__BLOCKED__ = true;
+  }
+})();
+</script>
+
+<!-- ═══ İLK KURULUM ═══ -->
+<div id="setupScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:radial-gradient(ellipse at 30% 20%,#0f1f4a 0%,var(--bg) 60%);padding:24px">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-text"><span class="logo-y">Game</span><span class="logo-w">Zone</span></div>
+      <div class="sub">İLK KURULUM</div>
+    </div>
+    <div class="login-title">⚡ Yetkili Şifresi Oluştur</div>
+    <div class="login-desc">Henüz bir yetkili şifresi ayarlanmamış. Şimdi oluştur, bir daha gerekmeyecek.</div>
+
+    <div class="field">
+      <label>📧 E-posta veya Kullanıcı Adı</label>
+      <input type="text" id="setupIdent" placeholder="Hesap e-posta veya kullanıcı adı" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>🔑 Hesap Şifresi</label>
+      <input type="password" id="setupAccPass" placeholder="Normal hesap şifren" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>⚡ Yeni Yetkili Şifresi (en az 8 karakter)</label>
+      <input type="password" id="setupFndPass" placeholder="Güçlü bir şifre seç" autocomplete="new-password">
+    </div>
+    <div class="field">
+      <label>⚡ Yetkili Şifresi (tekrar)</label>
+      <input type="password" id="setupFndPass2" placeholder="Tekrar gir" autocomplete="new-password">
+    </div>
+
+    <button class="btn-login" id="btnSetup">✅ Şifreyi Kaydet ve Giriş Yap</button>
+    <div class="login-error" id="setupError"></div>
+
+    <div class="login-info">
+      🔒 Şifren SHA-256 ile şifrelenerek Firebase'e kaydedilir. Düz metin asla saklanmaz.
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOGIN ═══ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-text"><span class="logo-y">Game</span><span class="logo-w">Zone</span></div>
+      <div class="sub">YÖNETİCİ PANELİ</div>
+    </div>
+    <div class="login-title">⚡ Yetkili Girişi</div>
+    <div class="login-desc">Bu panel sadece yetkili kişiler içindir. Tüm girişler kayıt altındadır.</div>
+
+    <div class="field">
+      <label>📧 E-posta veya Kullanıcı Adı</label>
+      <input type="text" id="loginIdent" placeholder="ornek@mail.com veya kullanıcı adı" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>🔑 Hesap Şifresi</label>
+      <input type="password" id="loginPass" placeholder="Normal hesap şifren" autocomplete="current-password">
+    </div>
+    <div class="field">
+      <label>⚡ Yetkili Şifresi</label>
+      <input type="password" id="founderPass" placeholder="Yetkili şifresi" autocomplete="off">
+    </div>
+
+    <button class="btn-login" id="btnLogin">⚡ YETKİLİ OLARAK GİRİŞ YAP</button>
+    <div class="login-error" id="loginError"></div>
+
+    <div class="login-info">
+      🔒 3 hatalı deneme = 1 saat kilit &nbsp;·&nbsp; 📝 Tüm girişler kayıt altında
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="appScreen">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo"><span class="logo-y">Game</span><span class="logo-w">Zone</span></div>
+    <div class="topbar-badge">⚡ YÖNETİCİ</div>
+    <div class="topbar-sep"></div>
+    <div class="topbar-status" id="dbStatus">Bağlanıyor</div>
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="avatarInitial">?</div>
+      <span id="topbarUser">—</span>
+    </div>
+    <button class="btn-logout" onclick="logout()">Çıkış</button>
+  </div>
+
+  <!-- Body -->
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="nav-section">
+        <div class="nav-section-title">Genel</div>
+        <button class="nav-item active" onclick="navTo('dashboard', this)"><span class="icon">📊</span> Dashboard</button>
+        <button class="nav-item" onclick="navTo('players', this)"><span class="icon">👥</span> Oyuncular</button>
+        <button class="nav-item" onclick="navTo('alerts', this)"><span class="icon">🚨</span> Uyarılar <span class="nav-badge" id="alertBadge">0</span></button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Yönetim</div>
+        <button class="nav-item" onclick="navTo('bans', this)"><span class="icon">🔨</span> Banlar</button>
+        <button class="nav-item" onclick="navTo('economy', this)"><span class="icon">💰</span> Ekonomi</button>
+        <button class="nav-item" onclick="navTo('news', this)"><span class="icon">📰</span> Haberler</button>
+        <button class="nav-item" onclick="navTo('notifs', this)"><span class="icon">🔔</span> Bildirim Gönder</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Güvenlik</div>
+        <button class="nav-item" onclick="navTo('security', this)"><span class="icon">🛡️</span> Güvenlik Logları</button>
+        <button class="nav-item" onclick="navTo('adminlogs', this)"><span class="icon">📋</span> Admin Logları</button>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Sistem</div>
+        <button class="nav-item" onclick="navTo('settings', this)"><span class="icon">⚙️</span> Ayarlar</button>
+        <button class="nav-item" onclick="navTo('maintenance', this)"><span class="icon">🔧</span> Bakım Modu</button>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="content" id="mainContent">
+      <div class="loader"><div class="spin">⚡</div><p style="margin-top:16px">Yükleniyor...</p></div>
+    </main>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toastRoot"></div>
+
+<!-- Modal -->
+<div id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-title" id="modalTitle"></div>
+    <div id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   FIREBASE INIT
+═══════════════════════════════════════════════ */
+const firebaseConfig = {
+  apiKey:            "AIzaSyB5pl78DRao2SmUWsMYMSZ6YbfX4rtRNdc",
+  authDomain:        "gamezone-e11b0.firebaseapp.com",
+  databaseURL:       "https://gamezone-e11b0-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "gamezone-e11b0",
+  storageBucket:     "gamezone-e11b0.firebasestorage.app",
+  messagingSenderId: "775694460272",
+  appId:             "1:775694460272:web:7e5fd5691df9d8399d5bb5"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.database();
+
+/* DB yardımcıları */
+const _get  = p      => db.ref(p).once('value').then(s => s.val());
+const _set  = (p,v)  => db.ref(p).set(v);
+const _upd  = (p,o)  => db.ref(p).update(o);
+const _push = (p,v)  => db.ref(p).push(v);
+const _rm   = p      => db.ref(p).remove();
+
+/* DB bağlantı durumu */
+db.ref('.info/connected').on('value', s => {
+  const el = document.getElementById('dbStatus');
+  if (!el) return;
+  if (s.val()) { el.textContent = 'Bağlı'; el.style.color = '#22c55e'; }
+  else          { el.textContent = 'Bağlantı yok'; el.style.color = '#ef4444'; }
+});
+
+/* ═══════════════════════════════════════════════
+   CRYPTO
+═══════════════════════════════════════════════ */
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST / MODAL
+═══════════════════════════════════════════════ */
+function toast(msg, kind='info', ms=3500) {
+  const root = document.getElementById('toastRoot');
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+function showModal(title, bodyHtml, actions=[]) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = bodyHtml;
+  const actEl = document.getElementById('modalActions');
+  actEl.innerHTML = '';
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (a.cls || 'btn-ghost');
+    btn.textContent = a.label;
+    btn.onclick = a.fn;
+    actEl.appendChild(btn);
+  });
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+/* ═══════════════════════════════════════════════
+   FORMAT HELPERS
+═══════════════════════════════════════════════ */
+const fmt = n => {
+  const num = Number(n)||0;
+  if (Math.abs(num) >= 1e9) return (num/1e9).toFixed(2)+' Mr ₺';
+  if (Math.abs(num) >= 1e6) return (num/1e6).toFixed(2)+' M ₺';
+  return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',minimumFractionDigits:0}).format(num);
+};
+const fmtNum = n => Number(n||0).toLocaleString('tr-TR');
+const fmtDate = ts => ts ? new Date(ts).toLocaleString('tr-TR') : '—';
+const fmtShort = n => {
+  const num=Number(n)||0;
+  if(Math.abs(num)>=1e9) return (num/1e9).toFixed(1)+' Mr';
+  if(Math.abs(num)>=1e6) return (num/1e6).toFixed(1)+' M';
+  if(Math.abs(num)>=1e3) return (num/1e3).toFixed(1)+' B';
+  return num.toLocaleString('tr-TR');
+};
+
+/* ═══════════════════════════════════════════════
+   RATE LIMIT (login)
+═══════════════════════════════════════════════ */
+const LS_LOCK = 'gz_admin_web_lock';
+const LS_ATT  = 'gz_admin_web_att';
+const MAX_ATT = 3;
+const LOCK_MS = 60 * 60 * 1000;
+
+function getLock() {
+  try {
+    const raw = localStorage.getItem(LS_LOCK);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (Date.now() > d.until) { localStorage.removeItem(LS_LOCK); localStorage.removeItem(LS_ATT); return null; }
+    return { remainingMin: Math.ceil((d.until - Date.now()) / 60000) };
+  } catch(e) { return null; }
+}
+function incrAtt() {
+  const c = parseInt(localStorage.getItem(LS_ATT)||'0') + 1;
+  localStorage.setItem(LS_ATT, String(c));
+  if (c >= MAX_ATT) {
+    localStorage.setItem(LS_LOCK, JSON.stringify({ until: Date.now() + LOCK_MS }));
+    localStorage.removeItem(LS_ATT);
+  }
+  return c;
+}
+function clearAtt() { localStorage.removeItem(LS_ATT); localStorage.removeItem(LS_LOCK); }
+
+/* ═══════════════════════════════════════════════
+   STARTUP — yetkili şifresi var mı kontrol et
+═══════════════════════════════════════════════ */
+async function checkStartup() {
+  if (window.__BLOCKED__) return; // masaüstü engeli
+  const hash = await _get('system/founderPassHash');
+  if (!hash) {
+    // Şifre yok → kurulum ekranı göster
+    document.getElementById('loginScreen').style.display = 'none';
+    const s = document.getElementById('setupScreen');
+    s.style.display = 'flex';
+  }
+  // Şifre var → normal login ekranı zaten görünüyor
+}
+checkStartup();
+
+/* ═══════════════════════════════════════════════
+   SETUP — ilk kurulum
+═══════════════════════════════════════════════ */
+document.getElementById('btnSetup').addEventListener('click', doSetup);
+['setupIdent','setupAccPass','setupFndPass','setupFndPass2'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if(e.key==='Enter') doSetup(); });
+});
+
+async function doSetup() {
+  const errEl = document.getElementById('setupError');
+  errEl.style.display = 'none';
+
+  const ident   = document.getElementById('setupIdent').value.trim();
+  const accPass = document.getElementById('setupAccPass').value;
+  const fndPass = document.getElementById('setupFndPass').value;
+  const fndPass2= document.getElementById('setupFndPass2').value;
+
+  if (!ident || !accPass || !fndPass) { showSetupErr('Tüm alanları doldur!'); return; }
+  if (fndPass.length < 8) { showSetupErr('Yetkili şifresi en az 8 karakter olmalı!'); return; }
+  if (fndPass !== fndPass2) { showSetupErr('Yetkili şifreleri eşleşmiyor!'); return; }
+
+  const btn = document.getElementById('btnSetup');
+  btn.disabled = true; btn.textContent = '⏳ Kaydediliyor...';
+
+  try {
+    // Firebase auth girişi
+    let loginEmail = ident;
+    if (!ident.includes('@')) {
+      const uid = await _get('usernames/' + ident.toLowerCase());
+      if (!uid) { showSetupErr('Kullanıcı adı bulunamadı!'); btn.disabled=false; btn.textContent='✅ Şifreyi Kaydet ve Giriş Yap'; return; }
+      const uData = await _get('users/' + uid);
+      if (uData?.isAnonymous || !uData?.email) {
+        const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gz_anon_' + ident.toLowerCase()));
+        const hex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+        loginEmail = 'u_' + hex.slice(0,20) + '@anon.gamezone.local';
+      } else { loginEmail = uData.email; }
+    }
+
+    await auth.signInWithEmailAndPassword(loginEmail, accPass);
+
+    // Yetkili şifresini hash'le ve kaydet
+    const hash = await sha256('gz_founder_v1_' + fndPass);
+    await _set('system/founderPassHash', hash);
+    await _push('adminLogs', { ts: Date.now(), adminUid: auth.currentUser?.uid, action: 'setup_founder_pass', details: 'İlk kurulum — yetkili şifresi oluşturuldu' });
+
+    toast('✅ Yetkili şifresi kaydedildi!', 'success');
+
+    // Kurulum ekranını kapat, uygulamaya gir
+    document.getElementById('setupScreen').style.display = 'none';
+    enterApp();
+
+  } catch(e) {
+    let msg = 'Hata oluştu';
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Hesap şifresi hatalı!';
+    else if (e.code === 'auth/user-not-found') msg = 'Kullanıcı bulunamadı!';
+    else if (e.code === 'auth/too-many-requests') msg = 'Çok fazla deneme, biraz bekle.';
+    showSetupErr(msg);
+    btn.disabled=false; btn.textContent='✅ Şifreyi Kaydet ve Giriş Yap';
+  }
+
+  function showSetupErr(msg) { errEl.textContent = '❌ ' + msg; errEl.style.display = 'block'; }
+}
+
+
+document.getElementById('btnLogin').addEventListener('click', doLogin);
+['loginIdent','loginPass','founderPass'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+async function doLogin() {
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+
+  // Kilit kontrolü
+  const lock = getLock();
+  if (lock) { showErr(`Cihaz kilitli! ${lock.remainingMin} dakika sonra tekrar dene.`); return; }
+
+  const ident     = document.getElementById('loginIdent').value.trim();
+  const accPass   = document.getElementById('loginPass').value;
+  const fndPass   = document.getElementById('founderPass').value;
+
+  if (!ident || !accPass || !fndPass) { showErr('Tüm alanları doldur!'); return; }
+
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true; btn.textContent = '⏳ Doğrulanıyor...';
+
+  try {
+    // 1. Yetkili şifresi doğrula
+    const enteredHash = await sha256('gz_founder_v1_' + fndPass);
+    const storedHash  = await _get('system/founderPassHash');
+
+    if (!storedHash) { showErr('Yetkili şifresi henüz ayarlanmamış!'); btn.disabled=false; btn.textContent='⚡ YETKİLİ OLARAK GİRİŞ YAP'; return; }
+
+    if (enteredHash !== storedHash) {
+      const c = incrAtt();
+      const rem = MAX_ATT - c;
+      if (getLock()) showErr('3 hatalı deneme! Cihaz 1 saat kilitlendi.');
+      else showErr(`Yetkili şifresi hatalı! Kalan: ${rem}`);
+      btn.disabled=false; btn.textContent='⚡ YETKİLİ OLARAK GİRİŞ YAP';
+      // Log
+      try { await _push('security/founderAttempts', { ts: Date.now(), uid: 'no_user', success: false, source: 'admin_web' }); } catch(e){}
+      return;
+    }
+
+    // 2. Firebase auth girişi
+    let loginEmail = ident;
+    if (!ident.includes('@')) {
+      // Kullanıcı adı — UID bul
+      const uid = await _get('usernames/' + ident.toLowerCase());
+      if (!uid) { showErr('Kullanıcı adı bulunamadı!'); btn.disabled=false; btn.textContent='⚡ YETKİLİ OLARAK GİRİŞ YAP'; return; }
+      const uData = await _get('users/' + uid);
+      if (!uData) { showErr('Kullanıcı verisi bulunamadı!'); btn.disabled=false; btn.textContent='⚡ YETKİLİ OLARAK GİRİŞ YAP'; return; }
+      if (uData.isAnonymous || !uData.email) {
+        const hashBuf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gz_anon_' + ident.toLowerCase()));
+        const hex = Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+        loginEmail = 'u_' + hex.slice(0,20) + '@anon.gamezone.local';
+      } else { loginEmail = uData.email; }
+    }
+
+    await auth.signInWithEmailAndPassword(loginEmail, accPass);
+    clearAtt();
+
+    // 3. Başarılı
+    await _push('security/founderAttempts', { ts: Date.now(), uid: auth.currentUser?.uid, success: true, source: 'admin_web' });
+    await _push('adminLogs', { ts: Date.now(), adminUid: auth.currentUser?.uid, action: 'admin_web_login', details: 'Web paneline giriş' });
+
+    enterApp();
+
+  } catch(e) {
+    console.error('[Login]', e);
+    let msg = 'Giriş başarısız';
+    if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Hesap şifresi hatalı!';
+    else if (e.code === 'auth/user-not-found') msg = 'Kullanıcı bulunamadı!';
+    else if (e.code === 'auth/too-many-requests') msg = 'Çok fazla deneme, biraz bekle.';
+    showErr(msg);
+    btn.disabled=false; btn.textContent='⚡ YETKİLİ OLARAK GİRİŞ YAP';
+  }
+
+  function showErr(msg) {
+    errEl.textContent = '❌ ' + msg;
+    errEl.style.display = 'block';
+  }
+}
+
+async function logout() {
+  if (!confirm('Çıkış yapmak istediğinden emin misin?')) return;
+  await auth.signOut();
+  location.reload();
+}
+
+/* ═══════════════════════════════════════════════
+   ENTER APP
+═══════════════════════════════════════════════ */
+async function enterApp() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').classList.add('active');
+
+  const userData = await _get('users/' + user.uid) || {};
+  const uname = userData.username || user.email || user.uid;
+
+  document.getElementById('topbarUser').textContent = uname + ' (Yönetici)';
+  document.getElementById('avatarInitial').textContent = uname[0]?.toUpperCase() || '?';
+
+  // Alert badge
+  loadAlertBadge();
+  // Open dashboard
+  navTo('dashboard');
+}
+
+/* ═══════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════ */
+function navTo(page, btn) {
+  // Aktif sınıfı güncelle
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const btns = document.querySelectorAll('.nav-item');
+    btns.forEach(b => { if (b.onclick?.toString().includes("'"+page+"'")) b.classList.add('active'); });
+  }
+
+  const pages = { dashboard, players, alerts, bans, economy, news, notifs, security, adminlogs, settings, maintenance };
+  const fn = pages[page];
+  if (fn) fn();
+  else setContent('<div class="empty"><div class="empty-icon">🚧</div><p>Yakında...</p></div>');
+}
+
+function setContent(html) {
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════ */
+async function dashboard() {
+  setContent('<div class="loader"><div class="spin">⚡</div><p style="margin-top:16px">Yükleniyor...</p></div>');
+
+  const [users, system, news] = await Promise.all([
+    _get('users'),
+    _get('system'),
+    _get('news/posts')
+  ]);
+
+  const userList  = Object.entries(users || {}).map(([uid,d]) => ({uid,...d}));
+  const total     = userList.length;
+  const online    = userList.filter(u => u.online).length;
+  const banned    = userList.filter(u => u.banned).length;
+  const newsCount = Object.keys(news||{}).length;
+
+  const totalMoney = userList.reduce((s,u) => s + (u.money||0), 0);
+
+  setContent(`
+    <div class="page-title">📊 Dashboard</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Toplam Oyuncu</div><div class="stat-value">${fmtNum(total)}</div></div>
+      <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-label">Şu An Online</div><div class="stat-value" style="color:var(--green)">${fmtNum(online)}</div></div>
+      <div class="stat-card"><div class="stat-icon">🔨</div><div class="stat-label">Banlı Hesap</div><div class="stat-value" style="color:var(--red)">${fmtNum(banned)}</div></div>
+      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Toplam Piyasa Parası</div><div class="stat-value" style="color:var(--yellow)">${fmtShort(totalMoney)}</div><div class="stat-sub">Tüm oyuncuların nakiti</div></div>
+      <div class="stat-card"><div class="stat-icon">📰</div><div class="stat-label">Haber Sayısı</div><div class="stat-value">${fmtNum(newsCount)}</div></div>
+      <div class="stat-card"><div class="stat-icon">⚙️</div><div class="stat-label">Bakım Modu</div><div class="stat-value" style="color:${system?.maintenance?.active ? 'var(--red)':'var(--green)'}">${system?.maintenance?.active ? 'AKTİF':'KAPALI'}</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">🏆 En Zengin Oyuncular</div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead><tr><th>#</th><th>Oyuncu</th><th>Para</th><th>Seviye</th></tr></thead>
+            <tbody>
+              ${userList.sort((a,b)=>(b.money||0)-(a.money||0)).slice(0,8).map((u,i) => `
+                <tr>
+                  <td class="mono">${i+1}</td>
+                  <td>${u.username||'—'} ${u.isFounder?'<span class="badge badge-purple">⚡Admin</span>':''}</td>
+                  <td style="color:var(--yellow)">${fmt(u.money)}</td>
+                  <td><span class="badge badge-blue">Lv ${u.level||1}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">🕐 Son Kayıt Olan Oyuncular</div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead><tr><th>Oyuncu</th><th>Tarih</th><th>Tip</th></tr></thead>
+            <tbody>
+              ${userList.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,8).map(u => `
+                <tr>
+                  <td>${u.username||'—'}</td>
+                  <td class="mono" style="font-size:11px">${fmtDate(u.createdAt)}</td>
+                  <td>${u.isAnonymous ? '<span class="badge badge-purple">🛡️ Anonim</span>' : '<span class="badge badge-blue">📧 Standart</span>'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════════════
+   PLAYERS
+═══════════════════════════════════════════════ */
+async function players() {
+  setContent('<div class="loader"><div class="spin">⚡</div><p style="margin-top:16px">Oyuncular yükleniyor...</p></div>');
+
+  const users = await _get('users') || {};
+  let list = Object.entries(users).map(([uid,d]) => ({uid,...d})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+
+  renderPlayers(list, '');
+
+  function renderPlayers(data, query) {
+    const filtered = query ? data.filter(u =>
+      (u.username||'').toLowerCase().includes(query.toLowerCase()) ||
+      (u.email||'').toLowerCase().includes(query.toLowerCase()) ||
+      u.uid.includes(query)
+    ) : data;
+
+    setContent(`
+      <div class="page-title">👥 Oyuncular <span style="font-size:15px;color:var(--muted);font-weight:500">(${filtered.length})</span></div>
+      <div class="search-row">
+        <input class="panel-input" id="playerSearch" placeholder="🔍 Kullanıcı adı, e-posta veya UID ile ara..." value="${query}">
+        <button class="btn btn-blue" onclick="players()">Tümünü Göster</button>
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Oyuncu</th>
+                <th>Para</th>
+                <th>Seviye</th>
+                <th>Tip</th>
+                <th>Durum</th>
+                <th>Son Görülme</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(u => `
+                <tr>
+                  <td>
+                    <div style="font-weight:600">${u.username||'—'}</div>
+                    <div class="mono">${u.uid.slice(0,14)}…</div>
+                    ${u.email ? `<div style="font-size:11px;color:var(--muted)">${u.email}</div>` : ''}
+                  </td>
+                  <td style="color:var(--yellow)">${fmt(u.money)}</td>
+                  <td><span class="badge badge-blue">Lv ${u.level||1}</span></td>
+                  <td>${u.isAnonymous ? '<span class="badge badge-purple">🛡️ Anonim</span>' : '<span class="badge badge-blue">📧 Standart</span>'}</td>
+                  <td>
+                    ${u.banned ? '<span class="badge badge-red">🔨 Banlı</span>' : (u.online ? '<span class="badge badge-green">🟢 Online</span>' : '<span class="badge" style="background:rgba(100,116,139,.1);color:var(--muted)">⚫ Offline</span>')}
+                    ${u.isFounder ? ' <span class="badge badge-purple">⚡</span>' : ''}
+                  </td>
+                  <td class="mono" style="font-size:11px">${fmtDate(u.lastSeen)}</td>
+                  <td>
+                    <button class="btn btn-ghost" style="font-size:11px" onclick="playerDetail('${u.uid}')">👁 Detay</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `);
+
+    const searchEl = document.getElementById('playerSearch');
+    if (searchEl) searchEl.addEventListener('input', e => renderPlayers(list, e.target.value));
+  }
+}
+
+async function playerDetail(targetUid) {
+  const u = await _get('users/' + targetUid) || {};
+  const bank = await _get('bank/' + targetUid) || {};
+  const txList = await _get('txHistory/' + targetUid) || {};
+  const txArr  = Object.values(txList).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
+
+  showModal('👤 ' + (u.username||targetUid), `
+    <div class="grid-2" style="gap:12px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">Para</div><div class="stat-value" style="font-size:18px;color:var(--yellow)">${fmt(u.money)}</div></div>
+      <div class="stat-card"><div class="stat-label">Banka</div><div class="stat-value" style="font-size:18px;color:var(--teal)">${fmt(bank.balance)}</div></div>
+      <div class="stat-card"><div class="stat-label">Elmas</div><div class="stat-value" style="font-size:18px;color:var(--purple)">${fmtNum(u.diamonds)}</div></div>
+      <div class="stat-card"><div class="stat-label">XP / Seviye</div><div class="stat-value" style="font-size:18px">${fmtNum(u.xp)} / Lv${u.level||1}</div></div>
+    </div>
+
+    <div class="alert ${u.banned ? 'alert-red' : 'alert-green'}" style="margin-bottom:12px">
+      ${u.banned ? '🔨 BANLI — ' + (u.banReason||'Sebep belirtilmemiş') : '✅ Hesap aktif'}
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${!u.banned ? `<button class="btn btn-red" onclick="banPlayer('${targetUid}','${u.username||''}')">🔨 Banla</button>` : `<button class="btn btn-green" onclick="unbanPlayer('${targetUid}')">✅ Banı Kaldır</button>`}
+        <button class="btn btn-orange" onclick="giveMoney('${targetUid}','${u.username||''}')">💰 Para Ver</button>
+        <button class="btn btn-blue" onclick="giveDialamond('${targetUid}','${u.username||''}')">💎 Elmas Ver</button>
+        <button class="btn btn-ghost" onclick="sendNotifTo('${targetUid}','${u.username||''}')">🔔 Bildirim Gönder</button>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;margin-bottom:8px">Son 10 İşlem</div>
+    ${txArr.length ? `
+      <table class="data-table">
+        <thead><tr><th>Tarih</th><th>Tür</th><th>Miktar</th><th>Sebep</th></tr></thead>
+        <tbody>
+          ${txArr.map(tx=>`
+            <tr>
+              <td class="mono" style="font-size:11px">${fmtDate(tx.ts)}</td>
+              <td>${tx.dir==='in'?'<span class="badge badge-green">+</span>':'<span class="badge badge-red">-</span>'}</td>
+              <td style="color:${tx.dir==='in'?'var(--green)':'var(--red)'}">${fmt(tx.amount)}</td>
+              <td style="font-size:11px;color:var(--muted)">${tx.reason||'—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : '<div class="empty" style="padding:20px"><p>İşlem yok</p></div>'}
+  `, [{ label:'Kapat', cls:'btn-ghost', fn: closeModal }]);
+}
+
+/* ═══════════════════════════════════════════════
+   BAN / UNBAN
+═══════════════════════════════════════════════ */
+async function banPlayer(targetUid, username) {
+  showModal('🔨 Oyuncu Banla', `
+    <div class="alert alert-red">Bu işlem geri alınabilir.</div>
+    <div class="modal-field">
+      <label>Ban Sebebi</label>
+      <textarea id="banReason" placeholder="Ban sebebini yaz..."></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Süre</label>
+      <select id="banDuration">
+        <option value="permanent">Kalıcı Ban</option>
+        <option value="1d">1 Gün</option>
+        <option value="7d">7 Gün</option>
+        <option value="30d">30 Gün</option>
+      </select>
+    </div>
+  `, [
+    { label: 'İptal', cls: 'btn-ghost', fn: closeModal },
+    { label: '🔨 Banla', cls: 'btn-red', fn: async () => {
+      const reason = document.getElementById('banReason').value.trim() || 'Kural ihlali';
+      await _upd('users/' + targetUid, { banned: true, banReason: reason, bannedAt: Date.now(), bannedBy: auth.currentUser?.uid });
+      await _push('adminLogs', { ts: Date.now(), adminUid: auth.currentUser?.uid, action: 'ban', details: JSON.stringify({targetUid,username,reason}) });
+      toast('🔨 ' + (username||targetUid) + ' banlandı!', 'success');
+      closeModal();
+      players();
+    }}
+  ]);
+}
+
+async function unbanPlayer(targetUid) {
+  if (!confirm('Banı kaldır?')) return;
+  await _upd('users/' + targetUid, { banned: false, banReason: null });
+  await _push('adminLogs', { ts: Date.now(), adminUid: auth.currentUser?.uid, action: 'unban', details: JSON.stringify({targetUid}) });
+  toast('✅ Ban kaldırıldı!', 'success');
+  closeModal();
+  players();
+}
+
+/* ═══════════════════════════════════════════════
+   GIVE MONEY / DIAMONDS
+═══════════════════════════════════════════════ */
+async function giveMoney(targetUid, username) {
+  showModal('💰 Para Ver — ' + username, `
+    <div class="modal-field"><label>Miktar (₺)</label><input type="number" id="giveAmt" placeholder="Örn: 50000" min="1"></div>
+    <div class="modal-field"><label>Sebep</label><input type="text" id="giveReason" value="admin-gift"></div>
+  `, [
+    { label: 'İptal', cls:'btn-ghost', fn: closeModal },
+    { label: '💰 Ver', cls:'btn-green', fn: async () => {
+      const amt = parseInt(document.getElementById('giveAmt').value);
+      const reason = document.getElementById('giveReason').value || 'admin-gift';
+      if (!amt || amt <= 0) { toast('Geçerli miktar gir!','error'); return; }
+      await db.ref('users/'+targetUid+'/money').transaction(c => (c||0) + amt);
+      await _push('txHistory/'+targetUid, { dir:'in', amount:amt, reason, ts:Date.now() });
+      await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'give_money', details:JSON.stringify({targetUid,username,amt,reason}) });
+      toast('💰 ' + fmtNum(amt) + '₺ verildi!','success');
+      closeModal();
+    }}
+  ]);
+}
+
+async function giveDialamond(targetUid, username) {
+  showModal('💎 Elmas Ver — ' + username, `
+    <div class="modal-field"><label>Elmas Miktarı</label><input type="number" id="diaAmt" placeholder="Örn: 100" min="1"></div>
+  `, [
+    { label: 'İptal', cls:'btn-ghost', fn: closeModal },
+    { label: '💎 Ver', cls:'btn-blue', fn: async () => {
+      const amt = parseInt(document.getElementById('diaAmt').value);
+      if (!amt || amt <= 0) { toast('Geçerli miktar gir!','error'); return; }
+      await db.ref('users/'+targetUid+'/diamonds').transaction(c => (c||0) + amt);
+      await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'give_diamonds', details:JSON.stringify({targetUid,username,amt}) });
+      toast('💎 ' + fmtNum(amt) + ' elmas verildi!','success');
+      closeModal();
+    }}
+  ]);
+}
+
+/* ═══════════════════════════════════════════════
+   ALERTS
+═══════════════════════════════════════════════ */
+async function loadAlertBadge() {
+  const d = await _get('adminAlerts') || {};
+  const count = Object.values(d).filter(a => !a.handled).length;
+  document.getElementById('alertBadge').textContent = count;
+  document.getElementById('alertBadge').style.display = count ? '' : 'none';
+}
+
+async function alerts() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const [autoBans, warnUsers] = await Promise.all([
+    _get('adminAlerts'),
+    _get('security')
+  ]);
+
+  const bans = Object.entries(autoBans || {}).map(([k,v])=>({key:k,...v})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+
+  setContent(`
+    <div class="page-title">🚨 Uyarılar & Otomatik Banlar</div>
+    ${!bans.length ? '<div class="empty"><div class="empty-icon">✅</div><p>Şu an uyarı yok</p></div>' : `
+      <div class="card">
+        <div class="card-head">🤖 Otomatik Ban Uyarıları</div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead><tr><th>Tarih</th><th>UID</th><th>Sebep</th><th>Para</th><th>Uyarı #</th><th>İşlem</th></tr></thead>
+            <tbody>
+              ${bans.map(b=>`
+                <tr style="${b.handled?'opacity:.4':''}">
+                  <td class="mono" style="font-size:11px">${fmtDate(b.ts)}</td>
+                  <td class="mono">${(b.uid||'').slice(0,12)}…</td>
+                  <td style="font-size:12px">${b.reason||'—'}</td>
+                  <td style="color:var(--yellow)">${fmt(b.money)}</td>
+                  <td><span class="badge badge-red">${b.warns||'?'}</span></td>
+                  <td>
+                    ${!b.handled ? `
+                      <button class="btn btn-green" style="font-size:11px" onclick="handleAlert('${b.key}','${b.uid}',true)">✅ Onayla</button>
+                      <button class="btn btn-ghost" style="font-size:11px;margin-left:4px" onclick="handleAlert('${b.key}','${b.uid}',false)">❌ İptal</button>
+                    ` : '<span style="color:var(--muted);font-size:11px">İşlendi</span>'}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `}
+  `);
+}
+
+async function handleAlert(key, targetUid, approve) {
+  if (approve) {
+    // Ban onayla (zaten banlı, sadece işaretleme)
+    await _upd('adminAlerts/' + key, { handled: true, handledAt: Date.now(), handledBy: auth.currentUser?.uid, action: 'approved' });
+    toast('🔨 Ban onaylandı', 'success');
+  } else {
+    // Ban iptal et
+    await _upd('users/' + targetUid, { banned: false, banReason: null });
+    await _upd('adminAlerts/' + key, { handled: true, handledAt: Date.now(), handledBy: auth.currentUser?.uid, action: 'cancelled' });
+    await db.ref('security/' + targetUid + '/warnCount').set(0);
+    toast('✅ Ban iptal edildi', 'success');
+  }
+  await _push('adminLogs', { ts: Date.now(), adminUid: auth.currentUser?.uid, action: approve?'alert_approve':'alert_cancel', details: JSON.stringify({key, targetUid}) });
+  await loadAlertBadge();
+  alerts();
+}
+
+/* ═══════════════════════════════════════════════
+   BANS
+═══════════════════════════════════════════════ */
+async function bans() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const users = await _get('users') || {};
+  const banned = Object.entries(users).filter(([,u]) => u.banned).map(([uid,u]) => ({uid,...u}));
+
+  setContent(`
+    <div class="page-title">🔨 Banlı Oyuncular <span style="font-size:15px;color:var(--muted);font-weight:500">(${banned.length})</span></div>
+    ${!banned.length ? '<div class="empty"><div class="empty-icon">✅</div><p>Banlı oyuncu yok</p></div>' : `
+      <div class="card">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Oyuncu</th><th>Ban Sebebi</th><th>Ban Tarihi</th><th>İşlem</th></tr></thead>
+            <tbody>
+              ${banned.map(u=>`
+                <tr>
+                  <td><div style="font-weight:600">${u.username||'—'}</div><div class="mono">${u.uid.slice(0,14)}…</div></td>
+                  <td style="font-size:12px;color:var(--muted)">${u.banReason||'Belirtilmemiş'}</td>
+                  <td class="mono" style="font-size:11px">${fmtDate(u.bannedAt)}</td>
+                  <td>
+                    <button class="btn btn-green" style="font-size:11px" onclick="unbanPlayer('${u.uid}')">✅ Kaldır</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `}
+  `);
+}
+
+/* ═══════════════════════════════════════════════
+   ECONOMY
+═══════════════════════════════════════════════ */
+async function economy() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const mb = await _get('system/merkezBankasi') || {};
+
+  setContent(`
+    <div class="page-title">💰 Ekonomi Yönetimi</div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Toplam Vergi Geliri</div><div class="stat-value" style="font-size:18px;color:var(--green)">${fmt(mb.totalVergi)}</div></div>
+      <div class="stat-card"><div class="stat-label">İşlem Vergisi</div><div class="stat-value" style="font-size:18px">%${mb.islemVergisi||2}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">⚙️ Merkez Bankası Ayarları</div>
+      <div class="card-body">
+        <div class="modal-field">
+          <label>İşlem Vergisi (%)</label>
+          <input class="panel-input" type="number" id="txVergi" value="${mb.islemVergisi||2}" min="0" max="50" style="width:200px">
+        </div>
+        <button class="btn btn-blue" onclick="saveEconomy()">💾 Kaydet</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">💸 Tüm Oyunculara Para Ver</div>
+      <div class="card-body">
+        <div class="alert alert-yellow" style="margin-bottom:16px">⚠️ Bu işlem tüm aktif oyunculara para ekler.</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input class="panel-input" type="number" id="massAmt" placeholder="Miktar (₺)" style="width:200px" min="1">
+          <input class="panel-input" type="text" id="massReason" value="admin-global-gift" style="width:220px">
+          <button class="btn btn-orange" onclick="massGiveMoney()">💸 Herkese Ver</button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function saveEconomy() {
+  const v = parseFloat(document.getElementById('txVergi').value);
+  if (isNaN(v) || v < 0 || v > 50) { toast('Geçersiz değer! (0-50 arası)', 'error'); return; }
+  await _upd('system/merkezBankasi', { islemVergisi: v });
+  await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'economy_update', details:JSON.stringify({islemVergisi:v}) });
+  toast('✅ Kaydedildi!', 'success');
+}
+
+async function massGiveMoney() {
+  const amt    = parseInt(document.getElementById('massAmt').value);
+  const reason = document.getElementById('massReason').value || 'admin-global-gift';
+  if (!amt || amt <= 0) { toast('Geçerli miktar gir!', 'error'); return; }
+  if (!confirm(`Tüm oyunculara ${fmtNum(amt)}₺ vermek istediğinden emin misin?`)) return;
+
+  const users = await _get('users') || {};
+  let count = 0;
+  for (const [uid, u] of Object.entries(users)) {
+    if (u.banned) continue;
+    await db.ref('users/'+uid+'/money').transaction(c => (c||0) + amt);
+    count++;
+  }
+  await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'mass_give_money', details:JSON.stringify({amt,reason,count}) });
+  toast(`💰 ${count} oyuncuya ${fmtNum(amt)}₺ verildi!`, 'success');
+}
+
+/* ═══════════════════════════════════════════════
+   NEWS
+═══════════════════════════════════════════════ */
+async function news() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const posts = await _get('news/posts') || {};
+  const list  = Object.entries(posts).map(([id,p])=>({id,...p})).sort((a,b)=>(b.ts||0)-(a.ts||0));
+
+  setContent(`
+    <div class="page-title">📰 Haberler</div>
+    <div style="display:flex;gap:10px;margin-bottom:20px">
+      <button class="btn btn-blue" onclick="createNews()">✏️ Manuel Haber Yaz</button>
+    </div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Başlık</th><th>Etiket</th><th>Tarih</th><th>Beğeni</th><th>İşlem</th></tr></thead>
+          <tbody>
+            ${!list.length ? '<tr><td colspan="5"><div class="empty" style="padding:30px">Haber yok</div></td></tr>' :
+              list.map(p=>`
+                <tr>
+                  <td style="max-width:300px"><div style="font-weight:600;font-size:13px">${p.title||'—'}</div><div style="font-size:11px;color:var(--muted)">${(p.body||'').slice(0,80)}…</div></td>
+                  <td><span class="badge badge-blue">${p.tag||'haber'}</span> ${p.auto?'<span class="badge badge-purple">🤖 AI</span>':''}</td>
+                  <td class="mono" style="font-size:11px">${fmtDate(p.ts)}</td>
+                  <td>❤️ ${p.likes||0}</td>
+                  <td>
+                    <button class="btn btn-red" style="font-size:11px" onclick="deleteNews('${p.id}')">🗑 Sil</button>
+                    ${!p.pinned ? `<button class="btn btn-ghost" style="font-size:11px;margin-left:4px" onclick="pinNews('${p.id}')">📌 Sabitle</button>` : `<button class="btn btn-orange" style="font-size:11px;margin-left:4px" onclick="unpinNews('${p.id}')">📌 Kaldır</button>`}
+                  </td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+}
+
+function createNews() {
+  showModal('✏️ Haber Yaz', `
+    <div class="modal-field"><label>Emoji</label><input type="text" id="nwEmoji" value="📰" maxlength="2"></div>
+    <div class="modal-field"><label>Başlık</label><input type="text" id="nwTitle" placeholder="Haber başlığı..."></div>
+    <div class="modal-field"><label>İçerik</label><textarea id="nwBody" placeholder="Haber metni..."></textarea></div>
+    <div class="modal-field"><label>Etiket</label><select id="nwTag"><option value="haber">📰 Haber</option><option value="guncell">🔄 Güncelleme</option><option value="etkinlik">🎉 Etkinlik</option><option value="ozel">⭐ Özel</option></select></div>
+  `, [
+    { label: 'İptal', cls:'btn-ghost', fn: closeModal },
+    { label: '📰 Yayınla', cls:'btn-blue', fn: async () => {
+      const title = document.getElementById('nwTitle').value.trim();
+      const body  = document.getElementById('nwBody').value.trim();
+      const tag   = document.getElementById('nwTag').value;
+      const emoji = document.getElementById('nwEmoji').value || '📰';
+      if (!title || !body) { toast('Başlık ve içerik zorunlu!','error'); return; }
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+      await _set('news/posts/'+id, { title, body, tag, emoji, ts:Date.now(), likes:0, auto:false });
+      await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'create_news', details:JSON.stringify({title,tag}) });
+      toast('📰 Haber yayınlandı!','success');
+      closeModal();
+      news();
+    }}
+  ]);
+}
+
+async function deleteNews(id) {
+  if (!confirm('Haberi sil?')) return;
+  await _rm('news/posts/'+id);
+  toast('🗑 Haber silindi','success');
+  news();
+}
+async function pinNews(id)   { await _upd('news/posts/'+id, {pinned:true}); toast('📌 Sabitlendi','success'); news(); }
+async function unpinNews(id) { await _upd('news/posts/'+id, {pinned:false}); toast('📌 Sabit kaldırıldı','success'); news(); }
+
+/* ═══════════════════════════════════════════════
+   NOTIF
+═══════════════════════════════════════════════ */
+async function notifs() {
+  setContent(`
+    <div class="page-title">🔔 Bildirim Gönder</div>
+
+    <div class="card" style="max-width:600px">
+      <div class="card-head">📢 Toplu Bildirim</div>
+      <div class="card-body">
+        <div class="modal-field"><label>Icon (emoji)</label><input class="panel-input" type="text" id="notifIcon" value="📢" maxlength="4" style="width:80px"></div>
+        <div class="modal-field"><label>Mesaj</label><textarea class="panel-input" id="notifMsg" placeholder="Bildirim mesajı..." style="width:100%;height:80px"></textarea></div>
+        <div class="modal-field">
+          <label>Hedef</label>
+          <select class="panel-input" id="notifTarget" style="width:100%">
+            <option value="all">📢 Tüm Oyuncular</option>
+            <option value="uid">👤 Belirli Oyuncu (UID gir)</option>
+          </select>
+        </div>
+        <div class="modal-field" id="notifUidWrap" style="display:none">
+          <label>Oyuncu UID veya Kullanıcı Adı</label>
+          <input class="panel-input" type="text" id="notifUid" placeholder="uid veya kullanıcıAdı" style="width:100%">
+        </div>
+        <button class="btn btn-blue" onclick="sendNotif()">🔔 Gönder</button>
+      </div>
+    </div>
+  `);
+
+  document.getElementById('notifTarget').addEventListener('change', e => {
+    document.getElementById('notifUidWrap').style.display = e.target.value === 'uid' ? '' : 'none';
+  });
+}
+
+async function sendNotifTo(targetUid, username) {
+  navTo('notifs');
+  setTimeout(() => {
+    document.getElementById('notifTarget').value = 'uid';
+    document.getElementById('notifUidWrap').style.display = '';
+    document.getElementById('notifUid').value = username || targetUid;
+  }, 100);
+}
+
+async function sendNotif() {
+  const icon    = document.getElementById('notifIcon').value || '📢';
+  const msg     = document.getElementById('notifMsg').value.trim();
+  const target  = document.getElementById('notifTarget').value;
+  const uidOrName = document.getElementById('notifUid')?.value.trim();
+
+  if (!msg) { toast('Mesaj boş olamaz!','error'); return; }
+
+  if (target === 'all') {
+    const users = await _get('users') || {};
+    let count = 0;
+    for (const uid of Object.keys(users)) {
+      await _push('notifs/'+uid, { type:'system', icon, msg, ts:Date.now(), read:false });
+      count++;
+    }
+    await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'mass_notif', details:JSON.stringify({msg,count}) });
+    toast(`🔔 ${count} oyuncuya bildirim gönderildi!`,'success');
+  } else {
+    // Belirli oyuncu
+    let targetUid = uidOrName;
+    if (!targetUid.includes('-') && !/^[0-9a-zA-Z]{28}$/.test(targetUid)) {
+      // Kullanıcı adı olabilir
+      const found = await _get('usernames/'+targetUid.toLowerCase());
+      if (found) targetUid = found;
+    }
+    await _push('notifs/'+targetUid, { type:'system', icon, msg, ts:Date.now(), read:false });
+    await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'single_notif', details:JSON.stringify({targetUid,msg}) });
+    toast('🔔 Bildirim gönderildi!','success');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   SECURITY
+═══════════════════════════════════════════════ */
+async function security() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const attempts = await _get('security/founderAttempts') || {};
+  const arr = Object.values(attempts).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,30);
+
+  setContent(`
+    <div class="page-title">🛡️ Güvenlik Logları</div>
+    <div class="card">
+      <div class="card-head">⚡ Yetkili Giriş Denemeleri (Son 30)</div>
+      <div class="card-body">
+        <table class="data-table">
+          <thead><tr><th>Tarih</th><th>UID</th><th>Sonuç</th><th>Kaynak</th></tr></thead>
+          <tbody>
+            ${!arr.length ? '<tr><td colspan="4"><div class="empty" style="padding:20px">Log yok</div></td></tr>' :
+              arr.map(a=>`
+                <tr>
+                  <td class="mono" style="font-size:11px">${fmtDate(a.ts)}</td>
+                  <td class="mono">${(a.uid||'—').slice(0,14)}${a.uid&&a.uid.length>14?'…':''}</td>
+                  <td>${a.success ? '<span class="badge badge-green">✅ Başarılı</span>' : '<span class="badge badge-red">❌ Hatalı</span>'}</td>
+                  <td class="mono" style="font-size:11px">${a.source||'game'}</td>
+                </tr>
+              `).join('')
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════════════
+   ADMIN LOGS
+═══════════════════════════════════════════════ */
+async function adminlogs() {
+  setContent('<div class="loader"><div class="spin">⚡</div></div>');
+  const logs = await _get('adminLogs') || {};
+  const arr  = Object.values(logs).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,50);
+
+  setContent(`
+    <div class="page-title">📋 Admin Logları (Son 50)</div>
+    <div class="card">
+      <div class="card-body">
+        ${!arr.length ? '<div class="empty"><p>Log yok</p></div>' :
+          arr.map(l=>`
+            <div class="log-entry">
+              <div class="log-ts">${fmtDate(l.ts)}</div>
+              <div class="log-msg">
+                <span class="badge badge-blue" style="margin-right:6px">${l.action||'—'}</span>
+                <span style="font-size:12px;color:var(--muted)">${l.details||''}</span>
+              </div>
+            </div>
+          `).join('')
+        }
+      </div>
+    </div>
+  `);
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════════ */
+async function settings() {
+  const system = await _get('system') || {};
+
+  setContent(`
+    <div class="page-title">⚙️ Sistem Ayarları</div>
+
+    <div class="card" style="max-width:600px">
+      <div class="card-head">🔑 Yetkili Şifresi Güncelle</div>
+      <div class="card-body">
+        <div class="alert alert-yellow" style="margin-bottom:16px">Bu işlem tüm mevcut yetkili şifrelerini sıfırlar.</div>
+        <div class="modal-field"><label>Yeni Yetkili Şifresi</label><input type="password" class="panel-input" id="newFndPass" placeholder="En az 8 karakter" style="width:100%"></div>
+        <div class="modal-field"><label>Tekrar</label><input type="password" class="panel-input" id="newFndPass2" placeholder="Tekrar gir" style="width:100%"></div>
+        <button class="btn btn-orange" onclick="changeFounderPass()">🔑 Şifreyi Güncelle</button>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:600px;margin-top:20px">
+      <div class="card-head">📊 Sistem Bilgisi</div>
+      <div class="card-body">
+        <div class="toggle-row">
+          <div class="toggle-info"><div class="toggle-name">authorityUid</div><div class="toggle-desc">${system.authorityUid||'—'}</div></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info"><div class="toggle-name">founderPassHash</div><div class="toggle-desc mono">${system.founderPassHash ? system.founderPassHash.slice(0,32)+'…' : 'Ayarlanmamış!'}</div></div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function changeFounderPass() {
+  const p1 = document.getElementById('newFndPass').value;
+  const p2 = document.getElementById('newFndPass2').value;
+  if (!p1 || p1.length < 8) { toast('Şifre en az 8 karakter olmalı!','error'); return; }
+  if (p1 !== p2) { toast('Şifreler eşleşmiyor!','error'); return; }
+  if (!confirm('Yetkili şifresini değiştirmek istediğinden emin misin?')) return;
+
+  const hash = await sha256('gz_founder_v1_' + p1);
+  await _set('system/founderPassHash', hash);
+  await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action:'change_founder_pass', details:'Yetkili şifresi güncellendi' });
+  toast('✅ Yetkili şifresi güncellendi!','success');
+  document.getElementById('newFndPass').value = '';
+  document.getElementById('newFndPass2').value = '';
+}
+
+/* ═══════════════════════════════════════════════
+   MAINTENANCE
+═══════════════════════════════════════════════ */
+async function maintenance() {
+  const sys = await _get('system/maintenance') || {};
+  const active = !!sys.active;
+
+  setContent(`
+    <div class="page-title">🔧 Bakım Modu</div>
+    <div class="card" style="max-width:560px">
+      <div class="card-head">🔧 Bakım Modu Kontrolü</div>
+      <div class="card-body">
+        <div class="alert ${active ? 'alert-red' : 'alert-green'}" style="margin-bottom:20px;font-size:15px;font-weight:700">
+          ${active ? '🔴 Bakım modu AKTİF — Oyuncular giriş yapamıyor!' : '🟢 Bakım modu KAPALI — Oyun normal çalışıyor'}
+        </div>
+        <div class="modal-field"><label>Bakım Mesajı</label><input class="panel-input" type="text" id="maintMsg" value="${sys.message||''}" placeholder="Oyuncuya gösterilecek mesaj" style="width:100%"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          ${!active ?
+            '<button class="btn btn-red" onclick="setMaintenance(true)">🔴 Bakım Modunu Aç</button>' :
+            '<button class="btn btn-green" onclick="setMaintenance(false)">🟢 Bakım Modunu Kapat</button>'
+          }
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function setMaintenance(active) {
+  const msg = document.getElementById('maintMsg')?.value || '';
+  if (active && !confirm('Bakım modunu açmak istediğinden emin misin? Oyuncular giriş yapamayacak!')) return;
+  await _set('system/maintenance', { active, message: msg, updatedAt: Date.now(), updatedBy: auth.currentUser?.uid });
+  await _push('adminLogs', { ts:Date.now(), adminUid:auth.currentUser?.uid, action: active?'maintenance_on':'maintenance_off', details: msg });
+  toast(active ? '🔴 Bakım modu açıldı!' : '🟢 Bakım modu kapatıldı!', active?'warn':'success');
+  maintenance();
+}
+
+/* ═══════════════════════════════════════════════
+   AUTH STATE
+═══════════════════════════════════════════════ */
+auth.onAuthStateChanged(user => {
+  if (user && sessionStorage.getItem('gz_admin_web') === '1') {
+    enterApp();
+  }
+});
+
+// Session ile oturum devam etsin
+const origEnterApp = enterApp;
+window.enterApp = async function() {
+  sessionStorage.setItem('gz_admin_web','1');
+  await origEnterApp();
+};
+</script>
+</body>
+</html>
